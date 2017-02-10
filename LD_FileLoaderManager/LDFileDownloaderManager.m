@@ -57,7 +57,7 @@ static LDFileDownloaderManager *fileDownloadManager = nil;
 
 - (void)ld_downloadWithUrlString:(NSString *)url destination:(NSString *)destination progressHandler:(LD_ProgressHandler)progressHandler completionHandler:(LD_CompletionHandler)completionHandler errorHandler:(LD_ErrorHandler)errorHandler {
     
-    NSCAssert(url.length == 0 || destination.length == 0 || progressHandler == nil || completionHandler == nil || errorHandler == nil, @"Error: empty paramters input!");
+//    NSCAssert(url.length == 0 || destination.length == 0, @"Error: empty paramters input!");
     
     if (self.downloadTaskDict.count >= MAX_DOWNLOAD_TASK_CONCURRENT_COUNT) {
         NSDictionary *cacheTaskDict = [NSDictionary dictionaryWithObjectsAndKeys:
@@ -102,7 +102,7 @@ static LDFileDownloaderManager *fileDownloadManager = nil;
     }];
 }
 
-- (void)ld_removeDownloadFile:(NSString *)url {
+- (void)ld_removeDownloadFile:(NSString *)url destination:(NSString *)destination {
     LDFileLoader *fileLoader = self.downloadTaskDict[url];
     if (fileLoader) {
         [fileLoader ld_pause];
@@ -110,6 +110,13 @@ static LDFileDownloaderManager *fileDownloadManager = nil;
     }
     @synchronized (self) {
         [_downloadTaskDict removeObjectForKey:url];
+    }
+    
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSString *filePath = [destination stringByAppendingPathComponent:[[NSURL URLWithString:url] lastPathComponent]];
+    BOOL fileExist = [fileManager fileExistsAtPath:filePath];
+    if (fileExist) {
+        [fileManager removeItemAtPath:filePath error:nil];
     }
 }
 

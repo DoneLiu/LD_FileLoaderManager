@@ -90,6 +90,7 @@ static NSInteger SYSTEM_AVAILABLE_SPACE = 1024 * 1024 * 20;
                         [[NSNotificationCenter defaultCenter] postNotificationName:LDDownloadTaskDidFinishNotification object:nil userInfo:@{@"downloadTaskUrl":weakSelf.fileURL}];
                         
                         [[NSUserDefaults standardUserDefaults] removeObjectForKey:weakSelf.fileURL];
+                        [[NSUserDefaults standardUserDefaults] removeObjectForKey:[NSString stringWithFormat:@"%@_last_progress", weakSelf.fileURL]];
                         [[NSUserDefaults standardUserDefaults] synchronize];
                         
                         completionHandler(filePath.path);
@@ -128,6 +129,7 @@ static NSInteger SYSTEM_AVAILABLE_SPACE = 1024 * 1024 * 20;
                         [[NSNotificationCenter defaultCenter] postNotificationName:LDDownloadTaskDidFinishNotification object:nil userInfo:@{@"downloadTaskUrl":weakSelf.fileURL}];
                         
                         [[NSUserDefaults standardUserDefaults] removeObjectForKey:weakSelf.fileURL];
+                        [[NSUserDefaults standardUserDefaults] removeObjectForKey:[NSString stringWithFormat:@"%@_last_progress", weakSelf.fileURL]];
                         [[NSUserDefaults standardUserDefaults] synchronize];
                         
                         completionHandler(filePath.path);
