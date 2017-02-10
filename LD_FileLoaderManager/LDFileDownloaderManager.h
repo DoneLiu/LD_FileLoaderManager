@@ -20,7 +20,7 @@
 
 - (void)ld_cancelAllTasks;
 
-- (void)ld_removeDownloadFile:(NSString *)url destination:(NSString *)destination;
+- (void)ld_removeDownloadFileWithUrl:(NSString *)url destination:(NSString *)destination;
 
 - (float)ld_lastProgress:(NSString *)url;
 

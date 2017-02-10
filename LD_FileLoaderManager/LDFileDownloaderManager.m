@@ -102,7 +102,7 @@ static LDFileDownloaderManager *fileDownloadManager = nil;
     }];
 }
 
-- (void)ld_removeDownloadFile:(NSString *)url destination:(NSString *)destination {
+- (void)ld_removeDownloadFileWithUrl:(NSString *)url destination:(NSString *)destination {
     LDFileLoader *fileLoader = self.downloadTaskDict[url];
     if (fileLoader) {
         [fileLoader ld_pause];

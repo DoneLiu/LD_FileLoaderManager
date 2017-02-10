@@ -76,7 +76,7 @@
 }
 
 - (void)cancelDownload {
-    [[LDFileDownloaderManager shareManager] ld_removeDownloadFile:@"http://android-mirror.bugly.qq.com:8080/eclipse_mirror/juno/content.jar" destination:[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject]];
+    [[LDFileDownloaderManager shareManager] ld_removeDownloadFileWithUrl:@"http://android-mirror.bugly.qq.com:8080/eclipse_mirror/juno/content.jar" destination:[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject]];
 }
 
 - (void)didReceiveMemoryWarning {
