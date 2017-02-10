@@ -118,23 +118,43 @@ static LDFileDownloaderManager *fileDownloadManager = nil;
 }
 
 - (void)downloadTaskDidFinishDownloading:(NSNotification *)notify {
-    
+    if (notify && notify.userInfo) {
+        NSString *downloadTaskUrl = notify.userInfo[@"downloadTaskUrl"];
+        [self.downloadTaskDict removeObjectForKey:downloadTaskUrl];
+        
+        if (self.downloadTaskDict.count < MAX_DOWNLOAD_TASK_CONCURRENT_COUNT) {
+            if (self.downloadTaskQueue.count > 0) {
+                NSDictionary *cacheTaskDict = self.downloadTaskQueue[0];
+                [self ld_downloadWithUrlString:cacheTaskDict[@"downloadTaskUrl"] destination:cacheTaskDict[@"destination"] progressHandler:cacheTaskDict[@"progressHandler"] completionHandler:cacheTaskDict[@"completionHandler"] errorHandler:cacheTaskDict[@"errorHandler"]];
+                
+                [self.downloadTaskQueue removeObject:cacheTaskDict];
+            }
+        }
+    }
 }
 
 - (void)systemSpaceInsufficient:(NSNotification *)notify {
-    
+    if (notify && notify.userInfo) {
+        NSString *downloadTaskUrl = notify.userInfo[@"downloadTaskUrl"];
+        [self ld_cancelDownloadTask:downloadTaskUrl];
+    }
 }
 
 - (void)downloadTaskWillResign:(NSNotification *)notify {
-    
+    if (self.downloadTaskDict.count > 0) {
+        self.backgroudTaskId = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:nil];
+    }
 }
 
 - (void)downloadTaskDidBecomActive:(NSNotification *)notify {
-    
+    if (self.backgroudTaskId != UIBackgroundTaskInvalid) {
+        [[UIApplication sharedApplication] endBackgroundTask:self.backgroudTaskId];
+        self.backgroudTaskId = UIBackgroundTaskInvalid;
+    }
 }
 
 - (void)downloadTaskWillBeTerminate:(NSNotification *)notify {
-    
+    [self ld_cancelAllTasks];
 }
 
 - (void)dealloc {

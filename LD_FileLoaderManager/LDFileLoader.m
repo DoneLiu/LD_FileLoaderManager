@@ -11,6 +11,7 @@
 #import "AFNetworking.h"
 
 static NSInteger CAPATICY_SCALE = 1024;
+static NSInteger SYSTEM_AVAILABLE_SPACE = 1024 * 1024 * 20;
 
 @interface LDFileLoader ()
 
@@ -59,15 +60,26 @@ static NSInteger CAPATICY_SCALE = 1024;
         
         self.fileURL = url;
         NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:url]];
+        __weak LDFileLoader *weakSelf = self;
         
         NSData *resumeData = [[NSUserDefaults standardUserDefaults] objectForKey:url];
         if (!resumeData) {
             self.downloadTask = [self.sessionManager downloadTaskWithRequest:request progress:^(NSProgress * _Nonnull downloadProgress) {
+                
+                NSUInteger systemAvailableSpace = [self systemAvailableSpace];
+                if (systemAvailableSpace <= SYSTEM_AVAILABLE_SPACE) {
+                    [[NSNotificationCenter defaultCenter] postNotificationName:LDSystemSpaceInsufficientNotification object:nil userInfo:@{@"downloadTaskUrl" : weakSelf.fileURL}];
+                };
+                
                 NSUInteger completedUnitCount = downloadProgress.completedUnitCount;
                 NSUInteger totalUnitCount = downloadProgress.totalUnitCount;
-                self.progress = 1.0 * completedUnitCount / totalUnitCount;
+                weakSelf.progress = 1.0 * completedUnitCount / totalUnitCount;
+                
+                NSDictionary *userInfo = @{@"downloadTaskUrl" : url, @"download_progress" : @(weakSelf.progress), @"completedUnitCount" : @(completedUnitCount), @"totalUnitCount" : @(totalUnitCount)};
+                [[NSNotificationCenter defaultCenter] postNotificationName:LDProgressDidChangeNotificaiton object:nil userInfo:userInfo];
+                
                 if (progressHandler) {
-                    progressHandler(self.progress, [self convertFileLengthGrowthToSpeed:_fileLengthGrowthPerSecond], completedUnitCount, totalUnitCount);
+                    progressHandler(weakSelf.progress, [weakSelf convertFileLengthGrowthToSpeed:_fileLengthGrowthPerSecond], completedUnitCount, totalUnitCount);
                 }
             } destination:^NSURL * _Nonnull(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) {
                 NSString *savePath = [destination stringByAppendingPathComponent:response.suggestedFilename];
@@ -75,7 +87,9 @@ static NSInteger CAPATICY_SCALE = 1024;
             } completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
                 if (!error) {
                     if (completionHandler) {
-                        [[NSUserDefaults standardUserDefaults] removeObjectForKey:self.fileURL];
+                        [[NSNotificationCenter defaultCenter] postNotificationName:LDDownloadTaskDidFinishNotification object:nil userInfo:@{@"downloadTaskUrl":weakSelf.fileURL}];
+                        
+                        [[NSUserDefaults standardUserDefaults] removeObjectForKey:weakSelf.fileURL];
                         [[NSUserDefaults standardUserDefaults] synchronize];
                         
                         completionHandler(filePath.path);
@@ -89,11 +103,21 @@ static NSInteger CAPATICY_SCALE = 1024;
             }];
         } else {
             self.downloadTask = [self.sessionManager downloadTaskWithResumeData:resumeData progress:^(NSProgress * _Nonnull downloadProgress) {
+                
+                NSUInteger systemAvailableSpace = [self systemAvailableSpace];
+                if (systemAvailableSpace <= SYSTEM_AVAILABLE_SPACE) {
+                    [[NSNotificationCenter defaultCenter] postNotificationName:LDSystemSpaceInsufficientNotification object:nil userInfo:@{@"downloadTaskUrl" : weakSelf.fileURL}];
+                };
+                
                 NSUInteger completedUnitCount = downloadProgress.completedUnitCount;
                 NSUInteger totalUnitCount = downloadProgress.totalUnitCount;
                 self.progress = 1.0 * completedUnitCount / totalUnitCount;
+                
+                NSDictionary *userInfo = @{@"downloadTaskUrl" : url, @"download_progress" : @(weakSelf.progress), @"completedUnitCount" : @(completedUnitCount), @"totalUnitCount" : @(totalUnitCount)};
+                [[NSNotificationCenter defaultCenter] postNotificationName:LDProgressDidChangeNotificaiton object:nil userInfo:userInfo];
+                
                 if (progressHandler) {
-                    progressHandler(self.progress, [self convertFileLengthGrowthToSpeed:_fileLengthGrowthPerSecond], completedUnitCount, totalUnitCount);
+                    progressHandler(weakSelf.progress, [weakSelf convertFileLengthGrowthToSpeed:_fileLengthGrowthPerSecond], completedUnitCount, totalUnitCount);
                 }
             } destination:^NSURL * _Nonnull(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) {
                 NSString *savePath = [destination stringByAppendingPathComponent:response.suggestedFilename];
@@ -101,7 +125,9 @@ static NSInteger CAPATICY_SCALE = 1024;
             } completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
                 if (!error) {
                     if (completionHandler) {
-                        [[NSUserDefaults standardUserDefaults] removeObjectForKey:self.fileURL];
+                        [[NSNotificationCenter defaultCenter] postNotificationName:LDDownloadTaskDidFinishNotification object:nil userInfo:@{@"downloadTaskUrl":weakSelf.fileURL}];
+                        
+                        [[NSUserDefaults standardUserDefaults] removeObjectForKey:weakSelf.fileURL];
                         [[NSUserDefaults standardUserDefaults] synchronize];
                         
                         completionHandler(filePath.path);
@@ -201,6 +227,12 @@ static NSInteger CAPATICY_SCALE = 1024;
     [plist setValue:archivedData forKey:@"NSURLSessionResumeCurrentRequest"];
     
     return [NSPropertyListSerialization dataWithPropertyList:plist format:NSPropertyListBinaryFormat_v1_0 options:0 error:&error];
+}
+
+- (NSUInteger)systemAvailableSpace {
+    NSString *docPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
+    NSDictionary *dict = [[NSFileManager defaultManager] attributesOfFileSystemForPath:docPath error:nil];
+    return [[dict objectForKey:NSFileSystemFreeSize] integerValue];
 }
 
 @end
