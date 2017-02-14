@@ -27,6 +27,8 @@ static NSInteger SYSTEM_AVAILABLE_SPACE = 1024 * 1024 * 20;
 @property (nonatomic, copy) LD_CompletionHandler completionHandler;
 @property (nonatomic, copy) LD_ErrorHandler errorHandler;
 
+// 下载文件的url
+@property (nonatomic, copy) NSString *fileURL;
 // 计算下载速率的定时器
 @property (nonatomic, strong) NSTimer *downloadSpeedTimer;
 // 每秒下载的文件大小
@@ -259,7 +261,7 @@ static NSInteger SYSTEM_AVAILABLE_SPACE = 1024 * 1024 * 20;
     
     return [NSPropertyListSerialization dataWithPropertyList:plist format:NSPropertyListBinaryFormat_v1_0 options:0 error:&error];
 }
-
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
 - (NSUInteger)systemAvailableSpace {
     NSString *docPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
     NSDictionary *dict = [[NSFileManager defaultManager] attributesOfFileSystemForPath:docPath error:nil];

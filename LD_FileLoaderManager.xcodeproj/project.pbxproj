@@ -244,6 +244,7 @@
 				TargetAttributes = {
 					13F6C5C21E4D879D009F751A = {
 						CreatedOnToolsVersion = 8.1;
+						DevelopmentTeam = FHGEW8E54N;
 						ProvisioningStyle = Automatic;
 					};
 					13F6C5DB1E4D879D009F751A = {
@@ -512,6 +513,7 @@
 			baseConfigurationReference = BB7B0B98F241DEF2ABFA6C01 /* Pods-LD_FileLoaderManager.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				DEVELOPMENT_TEAM = FHGEW8E54N;
 				INFOPLIST_FILE = LD_FileLoaderManager/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
@@ -525,6 +527,7 @@
 			baseConfigurationReference = EBA6AB69C57DD6ACC70945CE /* Pods-LD_FileLoaderManager.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				DEVELOPMENT_TEAM = FHGEW8E54N;
 				INFOPLIST_FILE = LD_FileLoaderManager/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";

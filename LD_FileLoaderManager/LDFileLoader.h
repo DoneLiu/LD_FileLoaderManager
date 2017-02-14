@@ -41,8 +41,6 @@ typedef void(^LD_ErrorHandler)(NSError *error);
 
 @interface LDFileLoader : NSObject
 
-@property (nonatomic, copy) NSString *fileURL;
-
 /**
  *  下载操作对象的实例化方法
  */
