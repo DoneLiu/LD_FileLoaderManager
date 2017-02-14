@@ -57,8 +57,6 @@ static LDFileDownloaderManager *fileDownloadManager = nil;
 
 - (void)ld_downloadWithUrlString:(NSString *)url destination:(NSString *)destination progressHandler:(LD_ProgressHandler)progressHandler completionHandler:(LD_CompletionHandler)completionHandler errorHandler:(LD_ErrorHandler)errorHandler {
     
-//    NSCAssert(url.length == 0 || destination.length == 0, @"Error: empty paramters input!");
-    
     if (self.downloadTaskDict.count >= MAX_DOWNLOAD_TASK_CONCURRENT_COUNT) {
         NSDictionary *cacheTaskDict = [NSDictionary dictionaryWithObjectsAndKeys:
                                        url, @"downloadTaskUrl",
@@ -79,7 +77,7 @@ static LDFileDownloaderManager *fileDownloadManager = nil;
 
 - (void)ld_cancelDownloadTask:(NSString *)url {
     LDFileLoader *fileLoader = self.downloadTaskDict[url];
-    [fileLoader ld_pause];
+    [fileLoader ld_cancel];
     @synchronized (self) {
         [_downloadTaskDict removeObjectForKey:url];
     }
@@ -93,10 +91,10 @@ static LDFileDownloaderManager *fileDownloadManager = nil;
 }
 
 - (void)ld_cancelAllTasks {
-    [self.downloadTaskDict enumerateKeysAndObjectsWithOptions:NSEnumerationConcurrent usingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
+    [self.downloadTaskDict enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
         if ([obj isKindOfClass:[LDFileLoader class]]) {
             LDFileLoader *fileLoader = obj;
-            [fileLoader ld_pause];
+            [fileLoader ld_cancel];
             [_downloadTaskDict removeObjectForKey:key];
         }
     }];
@@ -105,7 +103,6 @@ static LDFileDownloaderManager *fileDownloadManager = nil;
 - (void)ld_removeDownloadFileWithUrl:(NSString *)url destination:(NSString *)destination {
     LDFileLoader *fileLoader = self.downloadTaskDict[url];
     if (fileLoader) {
-        [fileLoader ld_pause];
         [fileLoader ld_cancel];
     }
     @synchronized (self) {
@@ -118,6 +115,12 @@ static LDFileDownloaderManager *fileDownloadManager = nil;
     if (fileExist) {
         [fileManager removeItemAtPath:filePath error:nil];
     }
+    
+    [[NSUserDefaults standardUserDefaults] removeObjectForKey:Cache_resumeData(url)];
+    [[NSUserDefaults standardUserDefaults] removeObjectForKey:Cache_completedUnitCount(url)];
+    [[NSUserDefaults standardUserDefaults] removeObjectForKey:Cache_totalUnitCount(url)];
+    [[NSUserDefaults standardUserDefaults] removeObjectForKey:Cache_last_progress(url)];
+    [[NSUserDefaults standardUserDefaults] synchronize];
 }
 
 - (float)ld_lastProgress:(NSString *)url {
@@ -154,10 +157,12 @@ static LDFileDownloaderManager *fileDownloadManager = nil;
 }
 
 - (void)downloadTaskDidBecomActive:(NSNotification *)notify {
-    if (self.backgroudTaskId != UIBackgroundTaskInvalid) {
-        [[UIApplication sharedApplication] endBackgroundTask:self.backgroudTaskId];
-        self.backgroudTaskId = UIBackgroundTaskInvalid;
-    }
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (self.backgroudTaskId != UIBackgroundTaskInvalid) {
+            [[UIApplication sharedApplication] endBackgroundTask:self.backgroudTaskId];
+            self.backgroudTaskId = UIBackgroundTaskInvalid;
+        }
+    });
 }
 
 - (void)downloadTaskWillBeTerminate:(NSNotification *)notify {
