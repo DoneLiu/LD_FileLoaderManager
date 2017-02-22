@@ -92,7 +92,7 @@ static NSInteger SYSTEM_AVAILABLE_SPACE = 1024 * 1024 * 20;
     }
 }
 
-- (void)ld_cancel {
+- (void)ld_cancel:(void(^)())completion {
     if (_downloadTask.state == NSURLSessionTaskStateRunning) {
         [_downloadTask suspend];
         
@@ -109,6 +109,8 @@ static NSInteger SYSTEM_AVAILABLE_SPACE = 1024 * 1024 * 20;
             [[NSUserDefaults standardUserDefaults] synchronize];
             
             weakSelf.downloadTask = nil;
+            
+            completion();
         }];
         
         if (self.downloadSpeedTimer) {
@@ -152,6 +154,14 @@ static NSInteger SYSTEM_AVAILABLE_SPACE = 1024 * 1024 * 20;
             weakSelf.progressHandler(weakSelf.progress, [weakSelf convertFileLengthGrowthToSpeed:_fileLengthGrowthPerSecond], weakSelf.completedUnitCount, weakSelf.totalUnitCount);
         }
     } destination:^NSURL * _Nonnull(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) {
+        // 创建保存下载文件的文件夹
+        BOOL isDir = NO;
+        NSFileManager *fileManager = [NSFileManager defaultManager];
+        BOOL existed = [fileManager fileExistsAtPath:destination isDirectory:&isDir];
+        if (!(isDir == YES && existed == YES)) {
+            [fileManager createDirectoryAtPath:destination withIntermediateDirectories:YES attributes:nil error:nil];
+        }
+
         NSString *savePath = [destination stringByAppendingPathComponent:response.suggestedFilename];
         return [NSURL fileURLWithPath:savePath];
     } completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
@@ -200,6 +210,14 @@ static NSInteger SYSTEM_AVAILABLE_SPACE = 1024 * 1024 * 20;
             weakSelf.progressHandler(weakSelf.progress, [weakSelf convertFileLengthGrowthToSpeed:_fileLengthGrowthPerSecond], weakSelf.completedUnitCount, weakSelf.totalUnitCount);
         }
     } destination:^NSURL * _Nonnull(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) {
+        // 创建保存下载文件的文件夹
+        BOOL isDir = NO;
+        NSFileManager *fileManager = [NSFileManager defaultManager];
+        BOOL existed = [fileManager fileExistsAtPath:destination isDirectory:&isDir];
+        if (!(isDir == YES && existed == YES)) {
+            [fileManager createDirectoryAtPath:destination withIntermediateDirectories:YES attributes:nil error:nil];
+        }
+        
         NSString *savePath = [destination stringByAppendingPathComponent:response.suggestedFilename];
         return [NSURL fileURLWithPath:savePath];
     } completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {

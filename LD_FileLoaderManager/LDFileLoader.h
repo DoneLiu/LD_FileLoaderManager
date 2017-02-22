@@ -59,7 +59,7 @@ typedef void(^LD_ErrorHandler)(NSError *error);
 /**
  *  取消下载
  */
-- (void)ld_cancel;
+- (void)ld_cancel:(void(^)())completion;
 
 /**
  *  获取某个url对应的下载进度 (NSUserDefaults)

@@ -123,7 +123,7 @@ static NSString *url2 = @"http://imgcache.qq.com/qzone/biz/gdt/dev/sdk/ios/relea
 }
 
 - (void)beginDownload1 {
-    [[LDFileDownloaderManager shareManager] ld_downloadWithUrlString:url1 destination:[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject] progressHandler:^(float progress, NSString *speed, NSUInteger completedUnitCount, NSUInteger totalUnitCount) {
+    [[LDFileDownloaderManager shareManager] ld_downloadWithUrlString:url1 destination:[NSHomeDirectory() stringByAppendingPathComponent:@"/Download"] progressHandler:^(float progress, NSString *speed, NSUInteger completedUnitCount, NSUInteger totalUnitCount) {
         NSLog(@"progress = %lf \n speed = %@, \n completedUnitCount = %ld, \n totalUnitCount = %ld",progress, speed, completedUnitCount, totalUnitCount);
         dispatch_async(dispatch_get_main_queue(), ^{
             self.progress1.progress = progress;
@@ -143,11 +143,11 @@ static NSString *url2 = @"http://imgcache.qq.com/qzone/biz/gdt/dev/sdk/ios/relea
 }
 
 - (void)cancelDownload1 {
-    [[LDFileDownloaderManager shareManager] ld_removeDownloadFileWithUrl:url1 destination:[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject]];
+    [[LDFileDownloaderManager shareManager] ld_removeDownloadFileWithUrl:url1 destination:[NSHomeDirectory() stringByAppendingPathComponent:@"/Download"]];
 }
 
 - (void)beginDownload2 {
-    [[LDFileDownloaderManager shareManager] ld_downloadWithUrlString:url2 destination:[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject] progressHandler:^(float progress, NSString *speed, NSUInteger completedUnitCount, NSUInteger totalUnitCount) {
+    [[LDFileDownloaderManager shareManager] ld_downloadWithUrlString:url2 destination:[NSHomeDirectory() stringByAppendingPathComponent:@"/Download"] progressHandler:^(float progress, NSString *speed, NSUInteger completedUnitCount, NSUInteger totalUnitCount) {
         NSLog(@"progress = %lf \n speed = %@, \n completedUnitCount = %ld, \n totalUnitCount = %ld",progress, speed, completedUnitCount, totalUnitCount);
         dispatch_async(dispatch_get_main_queue(), ^{
             self.progress2.progress = progress;
@@ -167,7 +167,7 @@ static NSString *url2 = @"http://imgcache.qq.com/qzone/biz/gdt/dev/sdk/ios/relea
 }
 
 - (void)cancelDownload2 {
-    [[LDFileDownloaderManager shareManager] ld_removeDownloadFileWithUrl:url2 destination:[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject]];
+    [[LDFileDownloaderManager shareManager] ld_removeDownloadFileWithUrl:url2 destination:[NSHomeDirectory() stringByAppendingPathComponent:@"/Download"]];
 }
 
 - (NSString *)convertFileLengthGrowthToSpeed:(NSUInteger)fileLengthGrowth {

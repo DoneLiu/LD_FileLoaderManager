@@ -77,50 +77,75 @@ static LDFileDownloaderManager *fileDownloadManager = nil;
 
 - (void)ld_cancelDownloadTask:(NSString *)url {
     LDFileLoader *fileLoader = self.downloadTaskDict[url];
-    [fileLoader ld_cancel];
-    @synchronized (self) {
-        [_downloadTaskDict removeObjectForKey:url];
-    }
-    
-    if (self.downloadTaskQueue.count > 0) {
-        NSDictionary *cacheTaskDict = self.downloadTaskQueue[0];
-        [self ld_downloadWithUrlString:cacheTaskDict[@"downloadTaskUrl"] destination:cacheTaskDict[@"destination"] progressHandler:cacheTaskDict[@"progressHandler"] completionHandler:cacheTaskDict[@"completionHandler"] errorHandler:cacheTaskDict[@"errorHandler"]];
+    [fileLoader ld_cancel:^{
+        @synchronized (self) {
+            [_downloadTaskDict removeObjectForKey:url];
+        }
         
-        [self.downloadTaskQueue removeObject:cacheTaskDict];
-    }
+        if (self.downloadTaskQueue.count > 0) {
+            NSDictionary *cacheTaskDict = self.downloadTaskQueue[0];
+            [self ld_downloadWithUrlString:cacheTaskDict[@"downloadTaskUrl"] destination:cacheTaskDict[@"destination"] progressHandler:cacheTaskDict[@"progressHandler"] completionHandler:cacheTaskDict[@"completionHandler"] errorHandler:cacheTaskDict[@"errorHandler"]];
+            
+            [self.downloadTaskQueue removeObject:cacheTaskDict];
+        }
+    }];
 }
 
 - (void)ld_cancelAllTasks {
     [self.downloadTaskDict enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
         if ([obj isKindOfClass:[LDFileLoader class]]) {
             LDFileLoader *fileLoader = obj;
-            [fileLoader ld_cancel];
-            [_downloadTaskDict removeObjectForKey:key];
+            [fileLoader ld_cancel:^{
+                [_downloadTaskDict removeObjectForKey:key];
+            }];
         }
     }];
 }
 
 - (void)ld_removeDownloadFileWithUrl:(NSString *)url destination:(NSString *)destination {
     LDFileLoader *fileLoader = self.downloadTaskDict[url];
+    // 直接取消下载,需要清除tmp缓存
     if (fileLoader) {
-        [fileLoader ld_cancel];
+        [fileLoader ld_cancel:^{
+            @synchronized (self) {
+                [_downloadTaskDict removeObjectForKey:url];
+            }
+            
+            [self removeDownloadOrTmpFileWithUrl:url destination:destination];
+        }];
+    } else {
+        // 暂停之后取消下载,也需要清除tmp缓存
+        [self removeDownloadOrTmpFileWithUrl:url destination:destination];
     }
-    @synchronized (self) {
-        [_downloadTaskDict removeObjectForKey:url];
-    }
-    
+}
+
+- (void)removeDownloadOrTmpFileWithUrl:(NSString *)url destination:(NSString *)destination {
     NSFileManager *fileManager = [NSFileManager defaultManager];
-    NSString *filePath = [destination stringByAppendingPathComponent:[[NSURL URLWithString:url] lastPathComponent]];
-    BOOL fileExist = [fileManager fileExistsAtPath:filePath];
-    if (fileExist) {
-        [fileManager removeItemAtPath:filePath error:nil];
-    }
     
-    [[NSUserDefaults standardUserDefaults] removeObjectForKey:Cache_resumeData(url)];
-    [[NSUserDefaults standardUserDefaults] removeObjectForKey:Cache_completedUnitCount(url)];
-    [[NSUserDefaults standardUserDefaults] removeObjectForKey:Cache_totalUnitCount(url)];
-    [[NSUserDefaults standardUserDefaults] removeObjectForKey:Cache_last_progress(url)];
-    [[NSUserDefaults standardUserDefaults] synchronize];
+    NSData *resumeData = [[NSUserDefaults standardUserDefaults] objectForKey:Cache_resumeData(url)];
+    if (resumeData) {
+        NSError *error;
+        NSPropertyListFormat format;
+        NSMutableDictionary *plist = [NSMutableDictionary dictionaryWithDictionary:[NSPropertyListSerialization propertyListWithData:resumeData options:NSPropertyListImmutable format:&format error:&error]];
+        NSString *resumePath = [plist objectForKey:@"NSURLSessionResumeInfoTempFileName"];
+        NSString *tmpFilePath = [NSTemporaryDirectory() stringByAppendingPathComponent:resumePath];
+        BOOL tmpFileExist = [fileManager fileExistsAtPath:tmpFilePath];
+        if (tmpFileExist) {
+            [fileManager removeItemAtPath:tmpFilePath error:nil];
+        }
+        
+        [[NSUserDefaults standardUserDefaults] removeObjectForKey:Cache_resumeData(url)];
+        [[NSUserDefaults standardUserDefaults] removeObjectForKey:Cache_completedUnitCount(url)];
+        [[NSUserDefaults standardUserDefaults] removeObjectForKey:Cache_totalUnitCount(url)];
+        [[NSUserDefaults standardUserDefaults] removeObjectForKey:Cache_last_progress(url)];
+        [[NSUserDefaults standardUserDefaults] synchronize];
+    } else {
+        NSString *filePath = [destination stringByAppendingPathComponent:[[NSURL URLWithString:url] lastPathComponent]];
+        BOOL fileExist = [fileManager fileExistsAtPath:filePath];
+        if (fileExist) {
+            [fileManager removeItemAtPath:filePath error:nil];
+        }
+    }
 }
 
 - (float)ld_lastProgress:(NSString *)url {
