@@ -110,7 +110,9 @@ static NSInteger SYSTEM_AVAILABLE_SPACE = 1024 * 1024 * 20;
             
             weakSelf.downloadTask = nil;
             
-            completion();
+            if (completion) {
+                completion();
+            }
         }];
         
         if (self.downloadSpeedTimer) {
