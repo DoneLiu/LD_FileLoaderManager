@@ -13,6 +13,8 @@
 
 static NSInteger CAPATICY_SCALE = 1024;
 
+static NSInteger AUTOMIC_CANCEL_DURATION = 0;
+
 /**
  *  系统可用磁盘空间阈值 (20MB)
  */
@@ -29,6 +31,8 @@ static NSInteger SYSTEM_AVAILABLE_SPACE = 1024 * 1024 * 20;
 
 // 下载文件的url
 @property (nonatomic, copy) NSString *fileURL;
+// 下载文件的保存路径
+@property (nonatomic, copy) NSString *destination;
 // 计算下载速率的定时器
 @property (nonatomic, strong) NSTimer *downloadSpeedTimer;
 // 每秒下载的文件大小
@@ -65,9 +69,11 @@ static NSInteger SYSTEM_AVAILABLE_SPACE = 1024 * 1024 * 20;
 #pragma mark - Public
 
 - (void)ld_downloadWithUrlString:(NSString *)url destination:(NSString *)destination progressHandler:(LD_ProgressHandler)progressHandler completionHandler:(LD_CompletionHandler)completionHandler errorHandler:(LD_ErrorHandler)errorHandler {
+    NSAssert(url, @"下载路径是空的啊！！！");
     if (url && destination) {
         // 文件下载url
         self.fileURL = url;
+        self.destination = destination;
         
         self.progressHandler = progressHandler;
         self.completionHandler = completionHandler;
@@ -110,9 +116,11 @@ static NSInteger SYSTEM_AVAILABLE_SPACE = 1024 * 1024 * 20;
             
             weakSelf.downloadTask = nil;
             
-            if (completion) {
-                completion();
-            }
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (completion) {
+                    completion();
+                }
+            });
         }];
         
         if (self.downloadSpeedTimer) {
@@ -191,6 +199,8 @@ static NSInteger SYSTEM_AVAILABLE_SPACE = 1024 * 1024 * 20;
 }
 
 - (void)downloadTaskWithResumeData:(NSData *)resumeData url:(NSString *)url destination:(NSString *)destination {
+    NSAssert(resumeData, @"缓存数据是空的啊！！！");
+    
     __weak LDFileLoader *weakSelf = self;
     self.downloadTask = [self.sessionManager downloadTaskWithResumeData:resumeData progress:^(NSProgress * _Nonnull downloadProgress) {
         
@@ -249,6 +259,27 @@ static NSInteger SYSTEM_AVAILABLE_SPACE = 1024 * 1024 * 20;
 - (void)fileLengthGrowth {
     _fileLengthGrowthPerSecond = _bytesWritten - _lastBytesWritten;
     _lastBytesWritten = _bytesWritten;
+    
+    AUTOMIC_CANCEL_DURATION += 1;
+    if (AUTOMIC_CANCEL_DURATION == 5) {
+        AUTOMIC_CANCEL_DURATION = 0;
+        [self ld_cancel:^{
+            NSLog(@"%s [NSThread currentThread] = %@", __FUNCTION__, [NSThread currentThread]);
+            
+            // 下载速率定时器设置
+            if (!self.downloadSpeedTimer) {
+                self.downloadSpeedTimer = [NSTimer scheduledTimerWithTimeInterval:1.0f target:self selector:@selector(fileLengthGrowth) userInfo:nil repeats:YES];
+            }
+            
+            // 从缓存中读取resumeData，判断是否是同一个文件的第一次点击操作
+            NSData *resumeData = [[NSUserDefaults standardUserDefaults] objectForKey:Cache_resumeData(self.fileURL)];
+            if (!resumeData) {
+                [self downloadTaskWithUrl:self.fileURL destination:self.destination];
+            } else {
+                [self downloadTaskWithResumeData:resumeData url:self.fileURL destination:self.destination];
+            }
+        }];
+    }
 }
 
 - (NSString *)convertFileLengthGrowthToSpeed:(NSUInteger)fileLengthGrowth {
