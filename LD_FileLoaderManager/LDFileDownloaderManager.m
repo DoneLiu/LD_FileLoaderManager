@@ -56,7 +56,6 @@ static LDFileDownloaderManager *fileDownloadManager = nil;
 }
 
 - (void)ld_downloadWithUrlString:(NSString *)url destination:(NSString *)destination progressHandler:(LD_ProgressHandler)progressHandler completionHandler:(LD_CompletionHandler)completionHandler errorHandler:(LD_ErrorHandler)errorHandler {
-    
     if (self.downloadTaskDict.count >= MAX_DOWNLOAD_TASK_CONCURRENT_COUNT) {        
         NSDictionary *cacheTaskDict = [NSDictionary dictionaryWithObjectsAndKeys:
                                        url, @"downloadTaskUrl",
